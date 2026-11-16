@@ -11,6 +11,7 @@ object Config {
     private const val KEY_SMTP_PASS = "smtp_pass"
 
     const val CLAUDE_PACKAGE = "com.anthropic.claude"
+    const val TRANSLATE_PACKAGE = "com.google.android.apps.translate"
 
     /** How long to stay quiet after a wake, so Claude can use the mic. */
     const val COOLDOWN_MS = 45_000L
@@ -47,4 +48,18 @@ object Wake {
     }
 
     fun isFresh(): Boolean = !tapped && System.currentTimeMillis() - lastTrigger < 10_000L
+
+    // Translate (Transcribe) auto-tap state
+    @Volatile var translateTrigger: Long = 0L
+    @Volatile var translateTapped: Boolean = true
+    @Volatile var inTranslate: Boolean = false
+
+    fun triggerTranslate() {
+        translateTrigger = System.currentTimeMillis()
+        translateTapped = false
+        inTranslate = true
+    }
+
+    fun isTranslateFresh(): Boolean =
+        !translateTapped && System.currentTimeMillis() - translateTrigger < 12_000L
 }

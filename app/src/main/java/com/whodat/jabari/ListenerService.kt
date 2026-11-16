@@ -31,6 +31,7 @@ class ListenerService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        live = this
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, "Jabari listener", NotificationManager.IMPORTANCE_LOW)
@@ -123,8 +124,9 @@ class ListenerService : LifecycleService() {
         val i = packageManager.getLaunchIntentForPackage(pkg)
         if (i != null) {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Wake.triggerTranslate()
             startActivity(i)
-            update("Translate open (use Conversation). Tap Start listening when done.")
+            update("Live translate on. Leave Translate and Jabari listens again.")
         } else {
             update("Install Google Translate first.")
         }
@@ -232,12 +234,20 @@ class ListenerService : LifecycleService() {
         try { engine?.stop() } catch (e: Exception) { Log.w(TAG, "Stop failed", e) }
     }
 
+    /** Tear the engine down and rebuild it, so listening truly restarts. */
+    private fun restartListening() {
+        try { engine?.stop() } catch (_: Exception) {}
+        engine = null
+        startListening()
+    }
+
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         if (video.isRecording) video.stop()
         stopAlarm()
         try { unregisterReceiver(unlock) } catch (_: Exception) {}
         stopListening()
+        live = null
         super.onDestroy()
     }
 
@@ -268,6 +278,14 @@ class ListenerService : LifecycleService() {
         private const val CHANNEL = "jabari"
         private const val NOTIF_ID = 1
         const val ACTION_STOP = "com.whodat.jabari.STOP"
+
+        @Volatile private var live: ListenerService? = null
+
+        /** Called by the accessibility helper when the user leaves Translate. */
+        fun resumeExternal() {
+            val s = live ?: return
+            s.handler.post { s.restartListening() }
+        }
 
         fun start(ctx: Context) {
             Config.setEnabled(ctx, true)

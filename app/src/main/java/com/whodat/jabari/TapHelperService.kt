@@ -15,22 +15,42 @@ class TapHelperService : AccessibilityService() {
     // Labels to look for, best match first. Adjust if a Claude update renames the button.
     private val targets = listOf("voice mode", "start voice", "voice", "talk", "microphone")
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (!Wake.isFresh()) return
-        val root = rootInActiveWindow ?: return
-        if (root.packageName?.toString() != Config.CLAUDE_PACKAGE) return
+    // Google Translate's live-listening button.
+    private val transcribeTargets = listOf("transcribe", "listen")
 
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        val pkg = event?.packageName?.toString()
+
+        // 1) Just after the wake word: tap Claude's voice button.
+        if (Wake.isFresh() && pkg == Config.CLAUDE_PACKAGE) {
+            tapIn(Config.CLAUDE_PACKAGE, targets) { Wake.tapped = true }
+            return
+        }
+
+        // 2) Just after "Interpret Jabari": tap Translate's Transcribe button.
+        if (Wake.isTranslateFresh() && pkg == Config.TRANSLATE_PACKAGE) {
+            tapIn(Config.TRANSLATE_PACKAGE, transcribeTargets) { Wake.translateTapped = true }
+            return
+        }
+
+        // 3) Left Translate after using it -> tell Jabari to resume listening.
+        //    Only the package name is read here, never another app's content.
+        if (Wake.inTranslate && pkg != null &&
+            pkg != Config.TRANSLATE_PACKAGE && pkg != packageName) {
+            Wake.inTranslate = false
+            ListenerService.resumeExternal()
+        }
+    }
+
+    private fun tapIn(pkg: String, words: List<String>, onTapped: () -> Unit) {
+        val root = rootInActiveWindow ?: return
+        if (root.packageName?.toString() != pkg) return
         val nodes = mutableListOf<AccessibilityNodeInfo>()
         collect(root, nodes)
         saveScreenDump(nodes)
-
-        for (word in targets) {
+        for (word in words) {
             val match = nodes.firstOrNull { label(it).contains(word) } ?: continue
-            if (click(match)) {
-                Wake.tapped = true
-                Log.i(TAG, "Tapped \"${label(match)}\"")
-                return
-            }
+            if (click(match)) { onTapped(); Log.i(TAG, "Tapped \"${label(match)}\""); return }
         }
     }
 
