@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -15,13 +14,15 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.lifecycle.LifecycleService
 
-class ListenerService : Service() {
+class ListenerService : LifecycleService() {
 
     private var engine: WakeEngine? = null
+    private val video by lazy { VideoRecorder(this, this) }
     private val handler = Handler(Looper.getMainLooper())
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent): IBinder? { super.onBind(intent); return null }
 
     override fun onCreate() {
         super.onCreate()
@@ -29,11 +30,13 @@ class ListenerService : Service() {
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, "Jabari listener", NotificationManager.IMPORTANCE_LOW)
         )
-        val type = if (Build.VERSION.SDK_INT >= 30) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        val type = if (Build.VERSION.SDK_INT >= 30)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
         ServiceCompat.startForeground(this, NOTIF_ID, notification("Starting…"), type)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         if (intent?.action == ACTION_STOP) {
             Config.setEnabled(this, false)
             stopSelf()
@@ -58,11 +61,30 @@ class ListenerService : Service() {
         when {
             ev == "WAKE" -> onWake()
             ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
+            ev == "VIDEO" -> startVideo()
+            ev == "STOP" -> if (video.isRecording) video.stop()
             ev.startsWith("SAVED:") -> {
                 beep(); beep()
                 update("Saved ${ev.removePrefix("SAVED:")} to Music/Jabari Recordings")
             }
         }
+    }
+
+    private fun startVideo() {
+        engine?.videoActive = true
+        beep()
+        update("Recording video… say \"Jabari, stop\"")
+        video.start(
+            onSaved = { name ->
+                engine?.videoActive = false
+                beep(); beep()
+                update("Saved $name to Movies/Jabari Videos")
+            },
+            onError = { msg ->
+                engine?.videoActive = false
+                update("Video failed: $msg")
+            }
+        )
     }
 
     private fun beep() {
@@ -102,6 +124,7 @@ class ListenerService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        if (video.isRecording) video.stop()
         stopListening()
         super.onDestroy()
     }

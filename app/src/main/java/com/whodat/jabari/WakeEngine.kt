@@ -17,8 +17,8 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
  * The model and keywords.txt ship inside the app (assets/kws), added by the GitHub build.
  */
 /**
- * Events: "WAKE" (open Claude; the mic has been released), "RECORDING" (started),
- * "SAVED:<file name>" (recording finished).
+ * Events: "WAKE" (open Claude; the mic has been released), "RECORDING" (audio started),
+ * "SAVED:<file name>" (audio finished), "VIDEO" (start video), "STOP" (stop command).
  *
  * Voice commands: "Jabari" alone opens Claude. "Jabari, record" starts recording,
  * "Jabari, stop" stops it. After "Jabari" the engine waits briefly for a command
@@ -33,6 +33,8 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
     private val recorder = Recorder(ctx, sampleRate)
     private val commandWindowMs = 1500L
     val isRecording: Boolean get() = recorder.isRecording
+    /** Set by the service while a video is recording. */
+    @Volatile var videoActive = false
 
     private fun spotter(): KeywordSpotter {
         spotter?.let { return it }
@@ -90,18 +92,23 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                             "JABARI" -> pendingSince = System.currentTimeMillis()
                             "RECORD" -> if (waiting) {
                                 pendingSince = 0
-                                if (!recorder.isRecording) { recorder.start(); onEvent("RECORDING") }
+                                if (!recorder.isRecording && !videoActive) { recorder.start(); onEvent("RECORDING") }
+                            }
+                            "VIDEO" -> if (waiting) {
+                                pendingSince = 0
+                                if (!videoActive) onEvent("VIDEO")
                             }
                             "STOP" -> if (waiting) {
                                 pendingSince = 0
                                 recorder.stop()?.let { onEvent("SAVED:$it") }
+                                onEvent("STOP")
                             }
                         }
                     }
                     // "Jabari" with no command after it: open Claude (not while recording).
                     if (pendingSince > 0 && System.currentTimeMillis() - pendingSince >= commandWindowMs) {
                         pendingSince = 0
-                        if (!recorder.isRecording) {
+                        if (!recorder.isRecording && !videoActive) {
                             running = false
                             onEvent("WAKE")
                             break@loop

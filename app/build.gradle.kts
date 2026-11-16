@@ -10,8 +10,8 @@ android {
         applicationId = "com.whodat.jabari"
         minSdk = 26
         targetSdk = 33
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 4
+        versionName = "0.4"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     androidResources { noCompress += listOf("onnx") }
@@ -24,4 +24,10 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.lifecycle:lifecycle-service:2.8.4")
+    val camerax = "1.3.4"
+    implementation("androidx.camera:camera-core:$camerax")
+    implementation("androidx.camera:camera-camera2:$camerax")
+    implementation("androidx.camera:camera-lifecycle:$camerax")
+    implementation("androidx.camera:camera-video:$camerax")
 }

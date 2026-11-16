@@ -24,7 +24,7 @@ class MainActivity : Activity() {
         status = TextView(this)
 
         layout.addView(TextView(this).apply { text = "Jabari Listener"; textSize = 24f })
-        layout.addView(TextView(this).apply { text = "Say \"Jabari\" to open Claude.\nSay \"Jabari, record\" to start recording and \"Jabari, stop\" to save it (Music/Jabari Recordings)." })
+        layout.addView(TextView(this).apply { text = "Say \"Jabari\" to open Claude.\nSay \"Jabari, record\" to start recording and \"Jabari, stop\" to save it (Music/Jabari Recordings).\nSay \"Jabari, video\" to record video and \"Jabari, stop\" to save it (Movies/Jabari Videos)." })
         layout.addView(status)
         layout.addView(button("Turn on tap helper (Accessibility)") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -34,7 +34,7 @@ class MainActivity : Activity() {
 
         setContentView(layout)
         requestPermissions(
-            arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS), 1
+            arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS), 1
         )
         refresh()
     }
