@@ -61,7 +61,7 @@ jobs:
           cp $M/decoder-epoch-12-avg-2-chunk-16-left-64.onnx $A/decoder.onnx
           cp $M/joiner-epoch-12-avg-2-chunk-16-left-64.onnx $A/joiner.onnx
           cp $M/tokens.txt $A/tokens.txt
-          pip install --quiet sherpa-onnx sentencepiece pypinyin
+          pip install --quiet sherpa-onnx sentencepiece pypinyin click
           sherpa-onnx-cli text2token --tokens $M/tokens.txt --tokens-type bpe --bpe-model $M/bpe.model keywords_raw.txt $A/keywords.txt
           cat $A/keywords.txt
 
