@@ -9,10 +9,13 @@ Say "Jabari" and the phone opens Claude ready to talk.
 4. After 45 seconds it goes back to listening.
 
 ## Voice commands
-- "Jabari": open Claude
-- "Jabari, record" / "Jabari, stop": audio as AAC .m4a (48 kbps mono, ~22 MB/hour) in Music/Jabari Recordings
-- "Jabari, video" / "Jabari, stop": rear camera up to 720p with sound in Movies/Jabari Videos
-- "Jabari, drop a pin" (or "pin", "mark location"): time, address, coordinates and a Google Maps link appended to Documents/Jabari/Jabari Pins.txt
+Every command is a full phrase so nothing collides with a bare "Jabari":
+- "Jabari, wake up": open Claude
+- "Jabari, record" / "Jabari, stop": audio (.m4a) in Music/Jabari Recordings
+- "Jabari, video" / "Jabari, stop": video in Movies/Jabari Videos
+- "Jabari, drop a pin": location to Documents/Jabari
+- "Jabari, panic" (loud alarm) / "Jabari, silent" (quiet): email location to the configured contacts
+- "Jabari, stop": end alarm/recording
 
 ## Wake words
 Edit `keywords_raw.txt` (one phrase per line, `@NAME` labels it). The build turns it into model tokens. No account or key needed.
