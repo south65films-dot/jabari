@@ -1,0 +1,3 @@
+<resources>
+    <string name="tap_helper_desc">After you say "Jabari", taps Claude\'s voice button so you can talk hands-free. Only acts inside the Claude app, only right after the wake word.</string>
+</resources>
