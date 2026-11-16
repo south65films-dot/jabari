@@ -24,6 +24,7 @@ class ListenerService : LifecycleService() {
     private val alerter by lazy { EmergencyAlerter(this) }
     private val photo by lazy { PhotoCapture(this, this) }
     private var ringtone: android.media.Ringtone? = null
+    private val unlock = UnlockReceiver()
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent): IBinder? { super.onBind(intent); return null }
@@ -38,6 +39,7 @@ class ListenerService : LifecycleService() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0
         ServiceCompat.startForeground(this, NOTIF_ID, notification("Starting…"), type)
+        try { registerReceiver(unlock, android.content.IntentFilter(Intent.ACTION_USER_PRESENT)) } catch (_: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -234,6 +236,7 @@ class ListenerService : LifecycleService() {
         handler.removeCallbacksAndMessages(null)
         if (video.isRecording) video.stop()
         stopAlarm()
+        try { unregisterReceiver(unlock) } catch (_: Exception) {}
         stopListening()
         super.onDestroy()
     }

@@ -18,6 +18,9 @@ Action word FIRST, then "Jabari" (unique leading words avoid wake-word collision
 - "Identify Jabari" / "Translate Jabari" — photo into Claude with a prompt; the photo is also saved to Pictures/Jabari (gallery)
 - "Interpret Jabari" — open Google Translate (listener pauses to free the mic)
 
+## Intro
+Plays `res/raw/intro.mp4` fullscreen (with sound) on unlock; tap to skip, auto-closes at the end. Toggle in the app or via Config.introEnabled.
+
 ## Wake words
 Edit `keywords_raw.txt` (one phrase per line, `@NAME` labels it). The build turns it into model tokens. No account or key needed.
 

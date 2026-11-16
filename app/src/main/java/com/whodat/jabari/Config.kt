@@ -30,6 +30,10 @@ object Config {
     fun setSmtpPass(ctx: Context, v: String) = prefs(ctx).edit().putString(KEY_SMTP_PASS, v).apply()
     fun alertConfigured(ctx: Context) = emailTo(ctx).isNotBlank() && smtpUser(ctx).isNotBlank() && smtpPass(ctx).isNotBlank()
 
+    private const val KEY_INTRO = "intro_enabled"
+    fun introEnabled(ctx: Context) = prefs(ctx).getBoolean(KEY_INTRO, true)
+    fun setIntroEnabled(ctx: Context, on: Boolean) = prefs(ctx).edit().putBoolean(KEY_INTRO, on).apply()
+
 }
 
 /** Shared state between the listener and the tap helper (same process). */

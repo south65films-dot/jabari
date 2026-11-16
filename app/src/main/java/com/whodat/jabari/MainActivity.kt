@@ -35,6 +35,10 @@ class MainActivity : Activity() {
         })
         layout.addView(button("Start listening") { ListenerService.start(this); refresh() })
         layout.addView(button("Stop listening") { ListenerService.stop(this); refresh() })
+        layout.addView(button("Play intro now") { SplashActivity.play(this) })
+        layout.addView(button("Intro on unlock: toggle") {
+            Config.setIntroEnabled(this, !Config.introEnabled(this)); refresh()
+        })
 
         setContentView(layout)
         requestPermissions(
@@ -47,7 +51,8 @@ class MainActivity : Activity() {
 
     private fun refresh() {
         status.text = "Listening: " + (if (Config.enabled(this)) "on" else "off") +
-            "\nSafety alert: " + (if (Config.alertConfigured(this)) "set up" else "NOT set up")
+            "\nSafety alert: " + (if (Config.alertConfigured(this)) "set up" else "NOT set up") +
+            "\nIntro on unlock: " + (if (Config.introEnabled(this)) "on" else "off")
     }
 
     private fun button(label: String, onClick: () -> Unit) =

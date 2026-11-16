@@ -10,8 +10,8 @@ android {
         applicationId = "com.whodat.jabari"
         minSdk = 26
         targetSdk = 33
-        versionCode = 11
-        versionName = "1.1"
+        versionCode = 12
+        versionName = "1.2"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     androidResources { noCompress += listOf("onnx") }
