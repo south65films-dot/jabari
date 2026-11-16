@@ -133,9 +133,28 @@ class ListenerService : LifecycleService() {
         beep()
         update("Taking photo…")
         photo.capture(
-            onSaved = { file -> handler.post { shareToClaude(file, prompt) } },
+            onSaved = { file -> handler.post { saveImageToGallery(file); shareToClaude(file, prompt) } },
             onError = { msg -> handler.post { update("Photo failed: $msg") } }
         )
+    }
+
+    private fun saveImageToGallery(file: java.io.File) {
+        Thread {
+            try {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, file.name)
+                    put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                    put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                        android.os.Environment.DIRECTORY_PICTURES + "/Jabari")
+                }
+                val uri = contentResolver.insert(
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                )
+                if (uri != null) contentResolver.openOutputStream(uri)?.use { o ->
+                    file.inputStream().use { it.copyTo(o) }
+                }
+            } catch (e: Exception) { Log.w(TAG, "Gallery save failed", e) }
+        }.start()
     }
 
     private fun shareToClaude(file: java.io.File, prompt: String) {

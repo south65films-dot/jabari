@@ -15,7 +15,7 @@ Action word FIRST, then "Jabari" (unique leading words avoid wake-word collision
 - "Video Jabari" / "Stop Jabari" — video in Movies/Jabari Videos
 - "Pin Jabari" — location to Documents/Jabari
 - "Panic Jabari" (loud) / "Quiet Jabari" (silent) — email location to contacts
-- "Identify Jabari" / "Translate Jabari" — photo into Claude with a prompt
+- "Identify Jabari" / "Translate Jabari" — photo into Claude with a prompt; the photo is also saved to Pictures/Jabari (gallery)
 - "Interpret Jabari" — open Google Translate (listener pauses to free the mic)
 
 ## Wake words
