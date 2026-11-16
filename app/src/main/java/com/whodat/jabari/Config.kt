@@ -6,6 +6,9 @@ import android.content.Context
 object Config {
     private const val PREFS = "jabari"
     private const val KEY_ENABLED = "enabled"
+    private const val KEY_EMAIL_TO = "email_to"
+    private const val KEY_SMTP_USER = "smtp_user"
+    private const val KEY_SMTP_PASS = "smtp_pass"
 
     const val CLAUDE_PACKAGE = "com.anthropic.claude"
 
@@ -17,6 +20,15 @@ object Config {
 
     fun setEnabled(ctx: Context, on: Boolean) =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, on).apply()
+
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    fun emailTo(ctx: Context) = prefs(ctx).getString(KEY_EMAIL_TO, "") ?: ""
+    fun setEmailTo(ctx: Context, v: String) = prefs(ctx).edit().putString(KEY_EMAIL_TO, v.trim()).apply()
+    fun smtpUser(ctx: Context) = prefs(ctx).getString(KEY_SMTP_USER, "") ?: ""
+    fun setSmtpUser(ctx: Context, v: String) = prefs(ctx).edit().putString(KEY_SMTP_USER, v.trim()).apply()
+    fun smtpPass(ctx: Context) = prefs(ctx).getString(KEY_SMTP_PASS, "") ?: ""
+    fun setSmtpPass(ctx: Context, v: String) = prefs(ctx).edit().putString(KEY_SMTP_PASS, v).apply()
+    fun alertConfigured(ctx: Context) = emailTo(ctx).isNotBlank() && smtpUser(ctx).isNotBlank() && smtpPass(ctx).isNotBlank()
 
 }
 

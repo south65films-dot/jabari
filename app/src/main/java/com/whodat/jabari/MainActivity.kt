@@ -16,6 +16,10 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        intent.getStringExtra("email_to")?.let { Config.setEmailTo(this, it) }
+        intent.getStringExtra("smtp_user")?.let { Config.setSmtpUser(this, it) }
+        intent.getStringExtra("smtp_pass")?.let { Config.setSmtpPass(this, it) }
+
         val pad = (16 * resources.displayMetrics.density).toInt()
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -42,7 +46,8 @@ class MainActivity : Activity() {
     override fun onResume() { super.onResume(); refresh() }
 
     private fun refresh() {
-        status.text = "Listening: " + if (Config.enabled(this)) "on" else "off"
+        status.text = "Listening: " + (if (Config.enabled(this)) "on" else "off") +
+            "\nSafety alert: " + (if (Config.alertConfigured(this)) "set up" else "NOT set up")
     }
 
     private fun button(label: String, onClick: () -> Unit) =

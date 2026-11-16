@@ -21,6 +21,8 @@ class ListenerService : LifecycleService() {
     private var engine: WakeEngine? = null
     private val video by lazy { VideoRecorder(this, this) }
     private val pins by lazy { PinDropper(this) }
+    private val alerter by lazy { EmergencyAlerter(this) }
+    private var ringtone: android.media.Ringtone? = null
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent): IBinder? { super.onBind(intent); return null }
@@ -65,12 +67,49 @@ class ListenerService : LifecycleService() {
             ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
             ev == "VIDEO" -> startVideo()
             ev == "PIN" -> { beep(); pins.drop { msg -> handler.post { beep(); update(msg) } } }
-            ev == "STOP" -> if (video.isRecording) video.stop()
+            ev == "PANIC" -> emergency("Panic Mode", loud = true)
+            ev == "SILENT" -> emergency("Silent Alarm", loud = false)
+            ev == "STOP" -> { stopAlarm(); if (video.isRecording) video.stop() }
             ev.startsWith("SAVED:") -> {
                 beep(); beep()
                 update("Saved ${ev.removePrefix("SAVED:")} to Music/Jabari Recordings")
             }
         }
+    }
+
+    private fun emergency(label: String, loud: Boolean) {
+        if (loud) startAlarm()
+        if (engine?.isRecording != true) {
+            engine?.let { /* audio capture is inside the engine loop; recorder started via its command path */ }
+        }
+        // Start an audio recording for the record.
+        try { startAudioFromService() } catch (_: Exception) { }
+        pins.drop { }
+        update(if (loud) "PANIC: alarm on, emailing $label…" else "SILENT: emailing $label…")
+        alerter.send(label) { ok, msg -> handler.post { update(msg) } }
+    }
+
+    private fun startAudioFromService() {
+        // Ask the engine to begin recording the mic it is already reading.
+        engine?.requestRecord()
+    }
+
+    private fun startAlarm() {
+        try {
+            val am = getSystemService(android.media.AudioManager::class.java)
+            am.setStreamVolume(android.media.AudioManager.STREAM_ALARM,
+                am.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM), 0)
+            val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM)
+            ringtone = android.media.RingtoneManager.getRingtone(this, uri).apply {
+                if (Build.VERSION.SDK_INT >= 28) isLooping = true
+                play()
+            }
+        } catch (e: Exception) { Log.w(TAG, "Alarm failed", e) }
+    }
+
+    private fun stopAlarm() {
+        try { ringtone?.stop() } catch (_: Exception) { }
+        ringtone = null
     }
 
     private fun startVideo() {
@@ -128,6 +167,7 @@ class ListenerService : LifecycleService() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         if (video.isRecording) video.stop()
+        stopAlarm()
         stopListening()
         super.onDestroy()
     }

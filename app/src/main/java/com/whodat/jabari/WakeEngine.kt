@@ -18,7 +18,7 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
  */
 /**
  * Events: "WAKE" (open Claude; the mic has been released), "RECORDING" (audio started),
- * "SAVED:<file name>" (audio finished), "VIDEO" (start video), "STOP" (stop command), "PIN" (drop a location pin).
+ * "SAVED:<file name>" (audio finished), "VIDEO" (start video), "STOP" (stop command), "PIN" (drop pin), "PANIC"/"SILENT" (safety alerts).
  *
  * Voice commands: "Jabari" alone opens Claude. "Jabari, record" starts recording,
  * "Jabari, stop" stops it. After "Jabari" the engine waits briefly for a command
@@ -35,6 +35,9 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
     val isRecording: Boolean get() = recorder.isRecording
     /** Set by the service while a video is recording. */
     @Volatile var videoActive = false
+    @Volatile private var recordRequested = false
+    /** Ask the loop to start an audio recording on its next cycle. */
+    fun requestRecord() { recordRequested = true }
 
     private fun spotter(): KeywordSpotter {
         spotter?.let { return it }
@@ -77,6 +80,9 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                 loop@ while (running) {
                     val n = record.read(buffer, 0, buffer.size)
                     if (n <= 0) continue
+                    if (recordRequested && !recorder.isRecording) {
+                        recordRequested = false; recorder.start(); onEvent("RECORDING")
+                    }
                     if (recorder.isRecording) recorder.write(buffer, n)
                     val samples = FloatArray(n) { buffer[it] / 32768.0f }
                     stream.acceptWaveform(samples, sampleRate = sampleRate)
@@ -102,6 +108,8 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                                 pendingSince = 0
                                 onEvent("PIN")
                             }
+                            "PANIC" -> if (waiting) { pendingSince = 0; onEvent("PANIC") }
+                            "SILENT" -> if (waiting) { pendingSince = 0; onEvent("SILENT") }
                             "STOP" -> if (waiting) {
                                 pendingSince = 0
                                 recorder.stop()?.let { onEvent("SAVED:$it") }
