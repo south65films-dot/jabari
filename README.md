@@ -8,6 +8,11 @@ Say "Jabari" and the phone opens Claude ready to talk.
 3. **TapHelperService** (an accessibility service) taps Claude's voice button within 10 seconds of the wake word. It does nothing at any other time and only sees the Claude app.
 4. After 45 seconds it goes back to listening.
 
+## Voice commands
+- "Jabari": open Claude
+- "Jabari, record" / "Jabari, stop": audio as AAC .m4a (48 kbps mono, ~22 MB/hour) in Music/Jabari Recordings
+- "Jabari, video" / "Jabari, stop": rear camera up to 720p with sound in Movies/Jabari Videos
+
 ## Wake words
 Edit `keywords_raw.txt` (one phrase per line, `@NAME` labels it). The build turns it into model tokens. No account or key needed.
 
