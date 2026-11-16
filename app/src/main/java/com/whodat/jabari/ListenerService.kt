@@ -20,6 +20,7 @@ class ListenerService : LifecycleService() {
 
     private var engine: WakeEngine? = null
     private val video by lazy { VideoRecorder(this, this) }
+    private val pins by lazy { PinDropper(this) }
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent): IBinder? { super.onBind(intent); return null }
@@ -31,7 +32,8 @@ class ListenerService : LifecycleService() {
             NotificationChannel(CHANNEL, "Jabari listener", NotificationManager.IMPORTANCE_LOW)
         )
         val type = if (Build.VERSION.SDK_INT >= 30)
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0
         ServiceCompat.startForeground(this, NOTIF_ID, notification("Starting…"), type)
     }
 
@@ -62,6 +64,7 @@ class ListenerService : LifecycleService() {
             ev == "WAKE" -> onWake()
             ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
             ev == "VIDEO" -> startVideo()
+            ev == "PIN" -> { beep(); pins.drop { msg -> handler.post { beep(); update(msg) } } }
             ev == "STOP" -> if (video.isRecording) video.stop()
             ev.startsWith("SAVED:") -> {
                 beep(); beep()

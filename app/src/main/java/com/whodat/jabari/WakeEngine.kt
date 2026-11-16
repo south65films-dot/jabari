@@ -18,7 +18,7 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
  */
 /**
  * Events: "WAKE" (open Claude; the mic has been released), "RECORDING" (audio started),
- * "SAVED:<file name>" (audio finished), "VIDEO" (start video), "STOP" (stop command).
+ * "SAVED:<file name>" (audio finished), "VIDEO" (start video), "STOP" (stop command), "PIN" (drop a location pin).
  *
  * Voice commands: "Jabari" alone opens Claude. "Jabari, record" starts recording,
  * "Jabari, stop" stops it. After "Jabari" the engine waits briefly for a command
@@ -97,6 +97,10 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                             "VIDEO" -> if (waiting) {
                                 pendingSince = 0
                                 if (!videoActive) onEvent("VIDEO")
+                            }
+                            "PIN" -> if (waiting) {
+                                pendingSince = 0
+                                onEvent("PIN")
                             }
                             "STOP" -> if (waiting) {
                                 pendingSince = 0
