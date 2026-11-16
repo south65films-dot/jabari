@@ -18,4 +18,5 @@ GitHub Actions downloads the latest sherpa-onnx release, the English keyword mod
 - **Objective:** hands-free "Jabari" wake word on the TCL ION V (T607DL, Android 13 Go) that opens Claude voice mode.
 - **Stack:** Kotlin, Android SDK 34, sherpa-onnx keyword spotting, GitHub Actions.
 - **Decisions:** switched from Picovoice (needed account approval) to sherpa-onnx (free, no account); no root; Claude has no voice-mode deep link and assistant sessions can't be started by apps, so an accessibility service taps the voice button.
-- **Not yet tested on the device.** Unknowns: Claude's exact voice-button label (check `last_screen.txt` via `adb shell run-as com.whodat.jabari cat files/last_screen.txt`), mic hand-off timing, background-launch permission.
+- **Tested 2026-11-16 on the TCL ION V: works** (wake word opens Claude listening). Install with `jabari_install.bat`. If a Claude update moves the voice button, check `adb shell run-as com.whodat.jabari cat files/last_screen.txt` and update the labels in TapHelperService.
+- **Next ideas:** play the intro video on wake; tune sensitivity if it misfires.
