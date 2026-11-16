@@ -17,6 +17,7 @@ Every command is a full phrase so nothing collides with a bare "Jabari":
 - "Jabari, panic" (loud alarm) / "Jabari, silent" (quiet): email location to the configured contacts
 - "Jabari, identify": photo into Claude asking what it is
 - "Jabari, translate": photo into Claude asking to translate the text
+- "Jabari, translate speech": opens Google Translate for live/conversation translation (listener pauses to free the mic)
 - "Jabari, stop": end alarm/recording
 
 ## Wake words

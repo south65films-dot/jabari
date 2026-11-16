@@ -18,7 +18,7 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
  * no bare "Jabari" trigger to collide with the commands.
  *
  * Events: "WAKE" (open Claude; mic released), "RECORD" (audio started),
- * "SAVED:<name>" (audio finished), "VIDEO", "PIN", "PANIC", "SILENT", "STOP", "IDENTIFY", "TRANSLATE".
+ * "SAVED:<name>" (audio finished), "VIDEO", "PIN", "PANIC", "SILENT", "STOP", "IDENTIFY", "TRANSLATE", "GTRANSLATE".
  */
 class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit) {
 
@@ -103,6 +103,10 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                             "WAKE" -> if (!recorder.isRecording && !videoActive) {
                                 running = false
                                 onEvent("WAKE")
+                            }
+                            "GTRANSLATE" -> if (!recorder.isRecording && !videoActive) {
+                                running = false   // free the mic so Translate can use it
+                                onEvent("GTRANSLATE")
                             }
                         }
                     }

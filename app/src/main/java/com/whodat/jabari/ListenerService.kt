@@ -68,6 +68,7 @@ class ListenerService : LifecycleService() {
             ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
             ev == "VIDEO" -> startVideo()
             ev == "PIN" -> { beep(); pins.drop { msg -> handler.post { beep(); update(msg) } } }
+            ev == "GTRANSLATE" -> openTranslate()
             ev == "IDENTIFY" -> snapToClaude("What is in this picture? Identify it as specifically as you can.")
             ev == "TRANSLATE" -> snapToClaude("Translate any text in this image and tell me what it says. Note the source language.")
             ev == "PANIC" -> emergency("Panic Mode", loud = true)
@@ -113,6 +114,18 @@ class ListenerService : LifecycleService() {
     private fun stopAlarm() {
         try { ringtone?.stop() } catch (_: Exception) { }
         ringtone = null
+    }
+
+    private fun openTranslate() {
+        val pkg = "com.google.android.apps.translate"
+        val i = packageManager.getLaunchIntentForPackage(pkg)
+        if (i != null) {
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
+            update("Translate open (use Conversation). Tap Start listening when done.")
+        } else {
+            update("Install Google Translate first.")
+        }
     }
 
     private fun snapToClaude(prompt: String) {

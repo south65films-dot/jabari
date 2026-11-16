@@ -19,6 +19,7 @@
 
     <queries>
         <package android:name="com.anthropic.claude" />
+        <package android:name="com.google.android.apps.translate" />
     </queries>
 
     <application
