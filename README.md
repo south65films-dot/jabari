@@ -15,6 +15,8 @@ Every command is a full phrase so nothing collides with a bare "Jabari":
 - "Jabari, video" / "Jabari, stop": video in Movies/Jabari Videos
 - "Jabari, drop a pin": location to Documents/Jabari
 - "Jabari, panic" (loud alarm) / "Jabari, silent" (quiet): email location to the configured contacts
+- "Jabari, identify": photo into Claude asking what it is
+- "Jabari, translate": photo into Claude asking to translate the text
 - "Jabari, stop": end alarm/recording
 
 ## Wake words

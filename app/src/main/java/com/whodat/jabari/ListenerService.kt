@@ -22,6 +22,7 @@ class ListenerService : LifecycleService() {
     private val video by lazy { VideoRecorder(this, this) }
     private val pins by lazy { PinDropper(this) }
     private val alerter by lazy { EmergencyAlerter(this) }
+    private val photo by lazy { PhotoCapture(this, this) }
     private var ringtone: android.media.Ringtone? = null
     private val handler = Handler(Looper.getMainLooper())
 
@@ -67,6 +68,8 @@ class ListenerService : LifecycleService() {
             ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
             ev == "VIDEO" -> startVideo()
             ev == "PIN" -> { beep(); pins.drop { msg -> handler.post { beep(); update(msg) } } }
+            ev == "IDENTIFY" -> snapToClaude("What is in this picture? Identify it as specifically as you can.")
+            ev == "TRANSLATE" -> snapToClaude("Translate any text in this image and tell me what it says. Note the source language.")
             ev == "PANIC" -> emergency("Panic Mode", loud = true)
             ev == "SILENT" -> emergency("Silent Alarm", loud = false)
             ev == "STOP" -> { stopAlarm(); if (video.isRecording) video.stop() }
@@ -110,6 +113,37 @@ class ListenerService : LifecycleService() {
     private fun stopAlarm() {
         try { ringtone?.stop() } catch (_: Exception) { }
         ringtone = null
+    }
+
+    private fun snapToClaude(prompt: String) {
+        if (video.isRecording) { update("Can't snap while recording video"); return }
+        beep()
+        update("Taking photo…")
+        photo.capture(
+            onSaved = { file -> handler.post { shareToClaude(file, prompt) } },
+            onError = { msg -> handler.post { update("Photo failed: $msg") } }
+        )
+    }
+
+    private fun shareToClaude(file: java.io.File, prompt: String) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this, "$packageName.fileprovider", file
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                setPackage(Config.CLAUDE_PACKAGE)
+                type = "image/jpeg"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, prompt)
+                clipData = android.content.ClipData.newRawUri("", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(send)
+            update("Sent to Claude — tap send.")
+        } catch (e: Exception) {
+            Log.w(TAG, "Share failed", e)
+            update("Couldn't open Claude with the photo.")
+        }
     }
 
     private fun startVideo() {
