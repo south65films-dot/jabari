@@ -7,12 +7,64 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KWS_MODEL: sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Pick latest sherpa-onnx release
+        run: |
+          TAG=$(gh release list -R k2-fsa/sherpa-onnx --exclude-pre-releases --limit 30 --json tagName -q '.[].tagName' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "SHERPA_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "Using sherpa-onnx $TAG"
+
+      - name: Native libraries
+        run: |
+          gh release download "$SHERPA_TAG" -R k2-fsa/sherpa-onnx -p "sherpa-onnx-${SHERPA_TAG}-android.tar.bz2" -D /tmp
+          tar xjf /tmp/sherpa-onnx-${SHERPA_TAG}-android.tar.bz2 -C /tmp
+          mkdir -p app/src/main/jniLibs
+          for abi in arm64-v8a armeabi-v7a; do
+            mkdir -p app/src/main/jniLibs/$abi
+            cp /tmp/jniLibs/$abi/*.so app/src/main/jniLibs/$abi/
+          done
+          ls -R app/src/main/jniLibs
+
+      - name: Kotlin API (same version as the native libraries)
+        run: |
+          git clone --depth 1 --branch "$SHERPA_TAG" --filter=blob:none --sparse https://github.com/k2-fsa/sherpa-onnx /tmp/sherpa
+          git -C /tmp/sherpa sparse-checkout set android/SherpaOnnxKws sherpa-onnx/kotlin-api
+          DEST=app/src/main/java/com/k2fsa/sherpa/onnx
+          mkdir -p $DEST
+          for f in /tmp/sherpa/android/SherpaOnnxKws/app/src/main/java/com/k2fsa/sherpa/onnx/*.kt; do
+            [ "$(basename $f)" = "MainActivity.kt" ] && continue
+            cp -L "$f" $DEST/
+          done
+          ls $DEST
+
+      - name: Wake word model and keywords
+        run: |
+          gh release download kws-models -R k2-fsa/sherpa-onnx -p "${KWS_MODEL}.tar.bz2" -D /tmp
+          tar xjf /tmp/${KWS_MODEL}.tar.bz2 -C /tmp
+          M=/tmp/${KWS_MODEL}
+          ls $M
+          A=app/src/main/assets/kws
+          mkdir -p $A
+          cp $M/encoder-epoch-12-avg-2-chunk-16-left-64.onnx $A/encoder.onnx
+          cp $M/decoder-epoch-12-avg-2-chunk-16-left-64.onnx $A/decoder.onnx
+          cp $M/joiner-epoch-12-avg-2-chunk-16-left-64.onnx $A/joiner.onnx
+          cp $M/tokens.txt $A/tokens.txt
+          pip install --quiet sherpa-onnx sentencepiece pypinyin
+          sherpa-onnx-cli text2token --tokens $M/tokens.txt --tokens-type bpe --bpe-model $M/bpe.model keywords_raw.txt $A/keywords.txt
+          cat $A/keywords.txt
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"

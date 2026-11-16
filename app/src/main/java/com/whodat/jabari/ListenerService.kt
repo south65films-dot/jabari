@@ -1,8 +1,5 @@
 package com.whodat.jabari
 
-import ai.picovoice.porcupine.Porcupine
-import ai.picovoice.porcupine.PorcupineException
-import ai.picovoice.porcupine.PorcupineManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -21,7 +18,7 @@ import androidx.core.app.ServiceCompat
 
 class ListenerService : Service() {
 
-    private var porcupine: PorcupineManager? = null
+    private var engine: WakeEngine? = null
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -47,36 +44,19 @@ class ListenerService : Service() {
     }
 
     private fun startListening() {
-        stopPorcupine()
-        val key = Config.accessKey(this)
-        if (key.isBlank()) {
-            update("No Picovoice key yet. Open Jabari Listener to add it.")
-            return
-        }
         try {
-            val builder = PorcupineManager.Builder().setAccessKey(key).setSensitivity(0.6f)
-            val custom = Config.keywordFile(this)
-            val label: String
-            if (custom.exists()) {
-                builder.setKeywordPath(custom.absolutePath)
-                label = "Jabari"
-            } else {
-                // Test word until the custom "Jabari" file is loaded.
-                builder.setKeyword(Porcupine.BuiltInKeyword.JARVIS)
-                label = "Jarvis (test word)"
-            }
-            porcupine = builder.build(applicationContext) { onWake() }
-            porcupine?.start()
-            update("Listening for \"$label\"")
-        } catch (e: PorcupineException) {
-            Log.e(TAG, "Porcupine failed", e)
+            val e = engine ?: WakeEngine(this) { handler.post { onWake() } }.also { engine = it }
+            e.start()
+            update("Listening for \"Jabari\"")
+        } catch (e: Exception) {
+            Log.e(TAG, "Wake engine failed", e)
             update("Wake word error: ${e.message}")
         }
     }
 
     private fun onWake() {
         Log.i(TAG, "Wake word heard")
-        stopPorcupine() // free the mic for Claude
+        // The engine has already released the mic.
         Wake.trigger()
         openClaude()
         update("Heard you. Back to listening shortly.")
@@ -98,19 +78,13 @@ class ListenerService : Service() {
         }
     }
 
-    private fun stopPorcupine() {
-        try {
-            porcupine?.stop()
-            porcupine?.delete()
-        } catch (e: Exception) {
-            Log.w(TAG, "Stop failed", e)
-        }
-        porcupine = null
+    private fun stopListening() {
+        try { engine?.stop() } catch (e: Exception) { Log.w(TAG, "Stop failed", e) }
     }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        stopPorcupine()
+        stopListening()
         super.onDestroy()
     }
 

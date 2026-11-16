@@ -11,8 +11,10 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "0.1"
+        versionName = "0.2"
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
+    androidResources { noCompress += listOf("onnx") }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -21,6 +23,5 @@ android {
 }
 
 dependencies {
-    implementation("ai.picovoice:porcupine-android:3.0.3")
     implementation("androidx.core:core-ktx:1.13.1")
 }
