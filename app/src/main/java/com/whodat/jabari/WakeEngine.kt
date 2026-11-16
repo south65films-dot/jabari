@@ -16,12 +16,23 @@ import com.k2fsa.sherpa.onnx.getFeatureConfig
  * Free, offline wake word using sherpa-onnx keyword spotting.
  * The model and keywords.txt ship inside the app (assets/kws), added by the GitHub build.
  */
-class WakeEngine(private val ctx: Context, private val onWake: (String) -> Unit) {
+/**
+ * Events: "WAKE" (open Claude; the mic has been released), "RECORDING" (started),
+ * "SAVED:<file name>" (recording finished).
+ *
+ * Voice commands: "Jabari" alone opens Claude. "Jabari, record" starts recording,
+ * "Jabari, stop" stops it. After "Jabari" the engine waits briefly for a command
+ * before opening Claude. While recording, "Jabari" alone is ignored.
+ */
+class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit) {
 
     private val sampleRate = 16000
     @Volatile private var running = false
     private var thread: Thread? = null
     private var spotter: KeywordSpotter? = null
+    private val recorder = Recorder(ctx, sampleRate)
+    private val commandWindowMs = 1500L
+    val isRecording: Boolean get() = recorder.isRecording
 
     private fun spotter(): KeywordSpotter {
         spotter?.let { return it }
@@ -58,28 +69,49 @@ class WakeEngine(private val ctx: Context, private val onWake: (String) -> Unit)
             )
             val stream = kws.createStream()
             val buffer = ShortArray(sampleRate / 10) // 100 ms
+            var pendingSince = 0L // when "Jabari" was heard, 0 if not waiting
             try {
                 record.startRecording()
-                while (running) {
+                loop@ while (running) {
                     val n = record.read(buffer, 0, buffer.size)
                     if (n <= 0) continue
+                    if (recorder.isRecording) recorder.write(buffer, n)
                     val samples = FloatArray(n) { buffer[it] / 32768.0f }
                     stream.acceptWaveform(samples, sampleRate = sampleRate)
                     while (kws.isReady(stream)) {
                         kws.decode(stream)
                         val word = kws.getResult(stream).keyword
-                        if (word.isNotBlank()) {
-                            kws.reset(stream)
-                            Log.i(TAG, "Heard: $word")
+                        if (word.isBlank()) continue
+                        kws.reset(stream)
+                        Log.i(TAG, "Heard: $word")
+                        val waiting = pendingSince > 0 &&
+                            System.currentTimeMillis() - pendingSince < commandWindowMs
+                        when (word) {
+                            "JABARI" -> pendingSince = System.currentTimeMillis()
+                            "RECORD" -> if (waiting) {
+                                pendingSince = 0
+                                if (!recorder.isRecording) { recorder.start(); onEvent("RECORDING") }
+                            }
+                            "STOP" -> if (waiting) {
+                                pendingSince = 0
+                                recorder.stop()?.let { onEvent("SAVED:$it") }
+                            }
+                        }
+                    }
+                    // "Jabari" with no command after it: open Claude (not while recording).
+                    if (pendingSince > 0 && System.currentTimeMillis() - pendingSince >= commandWindowMs) {
+                        pendingSince = 0
+                        if (!recorder.isRecording) {
                             running = false
-                            onWake(word)
-                            break
+                            onEvent("WAKE")
+                            break@loop
                         }
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Listening failed", e)
             } finally {
+                try { recorder.stop()?.let { onEvent("SAVED:$it") } } catch (_: Exception) { }
                 try { record.stop() } catch (_: Exception) { }
                 record.release() // free the mic for Claude
                 stream.release()

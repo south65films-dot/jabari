@@ -45,13 +45,31 @@ class ListenerService : Service() {
 
     private fun startListening() {
         try {
-            val e = engine ?: WakeEngine(this) { handler.post { onWake() } }.also { engine = it }
+            val e = engine ?: WakeEngine(this) { ev -> handler.post { onEngineEvent(ev) } }.also { engine = it }
             e.start()
             update("Listening for \"Jabari\"")
         } catch (e: Exception) {
             Log.e(TAG, "Wake engine failed", e)
             update("Wake word error: ${e.message}")
         }
+    }
+
+    private fun onEngineEvent(ev: String) {
+        when {
+            ev == "WAKE" -> onWake()
+            ev == "RECORDING" -> { beep(); update("Recording… say \"Jabari, stop\"") }
+            ev.startsWith("SAVED:") -> {
+                beep(); beep()
+                update("Saved ${ev.removePrefix("SAVED:")} to Music/Jabari Recordings")
+            }
+        }
+    }
+
+    private fun beep() {
+        try {
+            android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 80)
+                .startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 150)
+        } catch (_: Exception) { }
     }
 
     private fun onWake() {

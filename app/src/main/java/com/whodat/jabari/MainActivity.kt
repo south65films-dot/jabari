@@ -24,7 +24,7 @@ class MainActivity : Activity() {
         status = TextView(this)
 
         layout.addView(TextView(this).apply { text = "Jabari Listener"; textSize = 24f })
-        layout.addView(TextView(this).apply { text = "Say \"Jabari\" or \"Hey Jabari\" to open Claude." })
+        layout.addView(TextView(this).apply { text = "Say \"Jabari\" to open Claude.\nSay \"Jabari, record\" to start recording and \"Jabari, stop\" to save it (Music/Jabari Recordings)." })
         layout.addView(status)
         layout.addView(button("Turn on tap helper (Accessibility)") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
