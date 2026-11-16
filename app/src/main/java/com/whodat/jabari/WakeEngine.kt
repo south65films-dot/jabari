@@ -52,6 +52,8 @@ class WakeEngine(private val ctx: Context, private val onEvent: (String) -> Unit
                 numThreads = 1,
             ),
             keywordsFile = "$dir/keywords.txt",
+            keywordsThreshold = 0.30f,
+            numTrailingBlanks = 3,
         )
         return KeywordSpotter(assetManager = ctx.assets, config = config).also { spotter = it }
     }
