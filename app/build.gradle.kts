@@ -6,11 +6,19 @@ plugins {
 android {
     namespace = "com.whodat.jabari"
     compileSdk = 34
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     defaultConfig {
         applicationId = "com.whodat.jabari"
         minSdk = 26
         targetSdk = 33
-        versionCode = 12
+        versionCode = 13
         versionName = "1.2"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
