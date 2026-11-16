@@ -84,7 +84,7 @@ class ListenerService : Service() {
     }
 
     private fun openClaude() {
-        val assist = Intent(Intent.ACTION_VOICE_ASSIST)
+        val assist = Intent("android.intent.action.VOICE_ASSIST")
             .setPackage(Config.CLAUDE_PACKAGE)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
